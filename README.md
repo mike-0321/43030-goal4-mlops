@@ -1,63 +1,26 @@
-# Goal 4 MLOps: Model Tracking, Monitoring and Recovery
+# Goal 4: Basic MLOps
 
-This repository follows a small digits model from training to prediction, observation and recovery. The shared application also includes API security and software-quality checks; the Goal 4 focus is identifying the model being served and checking its behaviour when inputs or model files change.
+A local digits classifier for training, experiment tracking, API prediction and model recovery.
 
-## Implementation
-
-| Part of Goal 4 | Code | What it records or checks |
-| --- | --- | --- |
-| Training and experiment tracking | [train.py](learning_service/train.py) | Training-only preprocessing, held-out evaluation, MLflow parameters and metrics, model hash, split and source identity. |
-| Service readiness | [api.py](learning_service/api.py) | Separate liveness and readiness checks, with integrity checks before prediction. |
-| Controlled recovery | [recovery.py](learning_service/recovery.py) | Change a temporary model copy, refuse predictions, then restore a trusted copy. |
-| Performance and input sensitivity | [observations.py](learning_service/observations.py) | Sequential HTTP durations and a deliberately constructed pixel-intensity change. |
-| Automated regressions | [test_api.py](tests/test_api.py) | API behaviour, model identity, readiness, corruption and restoration. |
-| Data visualisation | [plotting kit](visualisation/) | Recreate the recorded model and timing charts from their input data. |
-
-## Run a new experiment
-
-Use Git and Python 3.12. Clone the repository, then run these commands from its root:
+Use Python 3.12 and Git. From a fresh clone's root:
 
 ```sh
 python3.12 -m venv .venv
 .venv/bin/python -m pip install -r requirements.lock
-.venv/bin/python run_demo.py
-```
-
-If using a downloaded source ZIP instead of a Git clone, initialise and commit a Git snapshot first; training records the current commit identifier.
-
-The complete demonstration creates a new model and MLflow run, executes the tests and HTTP cases, performs the recovery drill, measures 200 sequential requests after 10 warmups, and checks known dependency advisories. It prints the new run identifier and generates a fresh results summary. Installation and the advisory lookup require network access.
-
-To run the Goal 4 components separately, use a clean shell without a `LAB_ARTIFACT_DIR` override and run these commands from the repository root:
-
-```sh
 .venv/bin/python -m learning_service.train
 .venv/bin/python -m pytest -v
 .venv/bin/python -m learning_service.recovery
 .venv/bin/python -m learning_service.observations
 ```
 
-The recovery and observation scripts start their own loopback service and temporary demonstration key. Training must run first. On Windows, replace `.venv/bin/python` with `.venv\Scripts\python.exe`.
+Optional interactive API after training:
 
-## Recorded example
+```sh
+.venv/bin/python serve_demo.py
+```
 
-![Recorded digits model outcomes](docs/goal4_model_results.png)
+On Windows, replace `.venv/bin/python` with `.venv\Scripts\python.exe`.
 
-The plotting kit reproduces demonstration `20261112_011144_348020`, with MLflow run `1cfe6269b9ad4da0be83b4567d7be9ee`. Its 450 held-out examples include 440 correct predictions, giving 97.78% accuracy. Adding six intensity units to each test pixel and clipping to [0,16] reduced accuracy to 16.22%.
+Data: UCI Optical Recognition of Handwritten Digits, [DOI: 10.24432/C50P49](https://doi.org/10.24432/C50P49).
 
-The recorded recovery drill kept `/health` at 200 while `/ready` and `/predict` changed from 200 to 503 after corruption, then returned to 200 after restoration. These are observed response categories, not numerical security scores.
-
-The fixed plotting data retain the original measurements. A new execution produces its own run identifiers and timings; it should be reported separately. The plotting script validates model identity, the exported CSV checksum and agreement between the summary and individual records before drawing.
-
-## Scope
-
-MLflow uses SQLite and files for this exercise. The benchmark uses one loopback worker and sequential repeated requests. The controlled input change is a stress test, not a validated detector of natural or concept drift. The exercise provides no cloud-capacity, medical-performance or production-reliability claim.
-
-The repository's GitHub Actions workflow checks code quality, trains the model and runs pytest. The command-line recovery drill, HTTP benchmark and dependency audit are separate steps in the full demonstration.
-
-The original records and new executions remain distinct.
-
-## Data and learning sources
-
-- Alpaydin, E., & Kaynak, C. (1998). *Optical recognition of handwritten digits* [Data set]. UCI Machine Learning Repository. https://doi.org/10.24432/C50P49
-- [MLflow Tracking documentation](https://mlflow.org/docs/latest/ml/tracking/)
-- [scikit-learn common pitfalls](https://scikit-learn.org/stable/common_pitfalls.html)
+This public-digits exercise runs locally; its results do not establish clinical performance.
